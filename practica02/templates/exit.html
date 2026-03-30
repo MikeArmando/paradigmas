@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Registrar Salida{% endblock %}
+
+{% block page_header %}
+<div class="page-header">
+  <h1>REGISTRAR <span>SALIDA</span></h1>
+  <p>Cierra el ticket, calcula el cobro y libera el lugar</p>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="grid-2" style="align-items: start;">
+
+  <!-- Formulario de salida -->
+  <div class="card">
+    <div class="card-title">Número de ticket</div>
+
+    <form action="/exit" method="POST">
+      <div class="form-group">
+        <label for="ticket_id">ID del ticket a cerrar</label>
+        <input
+          type="number"
+          id="ticket_id"
+          name="ticket_id"
+          placeholder="Ej. 1"
+          min="1"
+          required
+        />
+      </div>
+
+      <div style="display:flex; gap:1rem; align-items:center; margin-top:1.5rem;">
+        <button type="submit" class="btn btn-danger">Registrar salida ✓</button>
+        <a href="/" class="btn btn-ghost">Cancelar</a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Tickets activos -->
+  <div class="card">
+    <div class="card-title">Tickets activos disponibles</div>
+
+    {% if active_tickets %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Placas</th>
+              <th>Tipo</th>
+              <th>Spot</th>
+              <th>Entrada</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for t in active_tickets %}
+              <tr
+                style="cursor:pointer;"
+                onclick="document.getElementById('ticket_id').value='{{ t.id }}'"
+                title="Click para seleccionar ticket #{{ t.id }}"
+              >
+                <td style="color:var(--accent); font-weight:700;">#{{ t.id }}</td>
+                <td>{{ t.plate }}</td>
+                <td>
+                  <span class="badge {{ 'badge-car' if t.vehicle_type == 'Car' else 'badge-moto' }}">
+                    {{ t.vehicle_type }}
+                  </span>
+                </td>
+                <td>{{ t.spot_id }}</td>
+                <td>{{ t.entry_time.split(' ')[1] }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p style="font-family:var(--mono); font-size:.7rem; color:var(--text-dim); margin-top:.6rem;">
+        💡 Click en una fila para seleccionar el ticket automáticamente
+      </p>
+    {% else %}
+      <div class="empty-state">No hay vehículos estacionados actualmente</div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- Info -->
+<div class="card mt-2" style="border-color: rgba(240,80,90,.2);">
+  <div class="card-title">¿Qué ocurre al registrar la salida?</div>
+  <p style="font-size:.85rem; color:var(--text-dim); line-height:1.6;">
+    El sistema cierra el ticket (estado <strong>CLOSED</strong>), calcula la duración
+    en horas y aplica la <strong>RatePolicy</strong> activa para determinar el costo
+    (polimorfismo: el mismo método <code style="color:var(--accent)">calculate()</code>
+    produce resultados distintos según la política configurada).
+    El lugar queda libre de inmediato para nuevos vehículos.
+  </p>
+</div>
+{% endblock %}

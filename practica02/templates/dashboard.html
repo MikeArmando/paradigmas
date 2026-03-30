@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block page_header %}
+<div class="page-header">
+  <h1>DASH<span>BOARD</span></h1>
+  <p>Estado en tiempo real del estacionamiento</p>
+</div>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Stats ──────────────────────────────────────────── -->
+<div class="stats">
+  <div class="stat green">
+    <div class="stat-label">Lugares libres</div>
+    <div class="stat-value" style="color:var(--green)">{{ occupancy.free }}</div>
+  </div>
+  <div class="stat red">
+    <div class="stat-label">Lugares ocupados</div>
+    <div class="stat-value" style="color:var(--red)">{{ occupancy.occupied }}</div>
+  </div>
+  <div class="stat accent">
+    <div class="stat-label">Total de lugares</div>
+    <div class="stat-value" style="color:var(--accent)">{{ occupancy.total }}</div>
+  </div>
+  <div class="stat blue">
+    <div class="stat-label">Recaudado</div>
+    <div class="stat-value" style="color:var(--blue); font-size:1.5rem">${{ "%.2f"|format(total_revenue) }}</div>
+  </div>
+</div>
+
+<!-- ── Acciones rápidas ───────────────────────────────── -->
+<div style="display:flex; gap:1rem; margin-bottom:1.5rem; flex-wrap:wrap; align-items:center;">
+  <a href="/entry" class="btn btn-primary">+ Registrar entrada</a>
+  <a href="/exit"  class="btn btn-danger">✓ Registrar salida</a>
+  <!-- Cambio de política (polimorfismo en acción) -->
+  <form action="/policy" method="POST" style="display:flex; gap:.5rem; align-items:center; margin-left:auto;">
+    <span style="font-family:var(--mono); font-size:.75rem; color:var(--text-dim);">Política:</span>
+    <select name="policy" style="width:auto; padding:.4rem .7rem; font-size:.8rem;">
+      <option value="hourly" {% if 'Hora' in policy %}selected{% endif %}>Por hora ($20 auto / $10 moto)</option>
+      <option value="flat"   {% if 'fija' in policy or 'Fija' in policy %}selected{% endif %}>Tarifa fija ($50)</option>
+    </select>
+    <button type="submit" class="btn btn-ghost" style="padding:.4rem .8rem; font-size:.78rem;">Aplicar</button>
+  </form>
+</div>
+<p style="font-family:var(--mono); font-size:.72rem; color:var(--text-dim); margin-bottom:1.5rem;">
+  Política activa: {{ policy }}
+</p>
+
+<!-- ── Mapa de spots + Tickets activos ───────────────── -->
+<div class="grid-3">
+  <div>
+    <!-- Spots -->
+    <div class="card mb-2">
+      <div class="card-title">Mapa de lugares</div>
+      {% if spots %}
+        <div class="spot-grid">
+          {% for spot in spots %}
+            <div class="spot-tile {{ 'occupied' if spot.occupied else 'free' }}">
+              <div class="spot-id">{{ spot.id }}</div>
+              <div class="spot-type">{{ spot.allowed }}</div>
+              {% if spot.occupied %}
+                <div class="spot-plate">{{ spot.vehicle_plate }}</div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+        <p style="font-family:var(--mono); font-size:.7rem; color:var(--text-dim); margin-top:.75rem;">
+          <span style="color:var(--green)">■</span> Libre &nbsp;
+          <span style="color:var(--red)">■</span> Ocupado
+        </p>
+      {% else %}
+        <div class="empty-state">Sin lugares configurados</div>
+      {% endif %}
+    </div>
+
+    <!-- Tickets activos -->
+    <div class="card">
+      <div class="card-title">Tickets activos ({{ active_tickets|length }})</div>
+      {% if active_tickets %}
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Placas</th>
+                <th>Tipo</th>
+                <th>Spot</th>
+                <th>Entrada</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for t in active_tickets %}
+                <tr>
+                  <td>{{ t.id }}</td>
+                  <td>{{ t.plate }}</td>
+                  <td>
+                    <span class="badge {{ 'badge-car' if t.vehicle_type == 'Car' else 'badge-moto' }}">
+                      {{ t.vehicle_type }}
+                    </span>
+                  </td>
+                  <td>{{ t.spot_id }}</td>
+                  <td>{{ t.entry_time.split(' ')[1] }}</td>
+                  <td><span class="badge badge-active">{{ t.status }}</span></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state">No hay vehículos estacionados</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Log de operaciones -->
+  <div class="card" style="align-self:start;">
+    <div class="card-title">Registro de operaciones</div>
+    {% if log %}
+      {% for entry in log %}
+        <div class="log-entry">
+          <span class="log-time">{{ entry.time }}</span>
+          <span class="log-msg {{ entry.kind }}">{{ entry.message }}</span>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state" style="padding:1rem 0;">Sin operaciones aún</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
